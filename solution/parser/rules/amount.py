@@ -7,18 +7,47 @@ from yargy import (
     rule,
     and_, or_,
 )
-
 from yargy.interpretation import (
     fact,
     const
 )
-
 from yargy.predicates import (
     eq, length_eq,
     in_, in_caseless,
     gram, type,
     normalized, caseless, dictionary
 )
+
+
+class Currency:
+    RUBLES = 'RUB'
+    DOLLARS = 'USD'
+    EURO = 'EUR'
+
+
+Money = fact(
+    'Money',
+    ['integer', 'fraction', 'multiplier', 'currency', 'coins']
+)
+
+
+class Money(Money):
+    @property
+    def amount(self):
+        amount = self.integer
+        if self.fraction:
+            amount += self.fraction / 100
+        if self.multiplier:
+            amount *= self.multiplier
+        if self.coins:
+            amount += self.coins / 100
+        return amount
+
+    @property
+    def obj(self):
+        from natasha import obj
+        return obj.Money(self.amount, self.currency)
+
 
 DOT = eq('.')
 INT = type('INT')
@@ -30,10 +59,6 @@ INT = type('INT')
 #
 ##########
 
-class Currency:
-    RUBLES = 'RUB'
-    DOLLARS = 'USD'
-    EURO = 'EUR'
 
 EURO = or_(
     normalized('евро'),
@@ -49,13 +74,11 @@ DOLLARS = or_(
     const(Currency.DOLLARS)
 )
 
-REGION = rule(
-    normalized('российский')
-)
-
 RUBLES = or_(
-    REGION.optional(),  
-    rule(normalized('рубль')),
+    rule(
+        normalized('российский').optional(),
+        normalized('рубль')
+    ),
     rule(
         or_(
             caseless('руб'),
@@ -72,6 +95,8 @@ CURRENCY = or_(
     EURO,
     DOLLARS,
     RUBLES
+).interpretation(
+    Money.currency
 )
 
 KOPEIKA = or_(
@@ -101,12 +126,12 @@ COINS_CURRENCY = or_(
 
 ########
 #
-#   SIGN
+#   PERCENT
 #
 ##########
 
 
-SIGN = or_(
+PERCENT = or_(
     rule(normalized('процент')),
     rule(eq('%'))   
 )
@@ -122,23 +147,31 @@ SIGN = or_(
 MILLIARD = or_(
     rule(caseless('млрд'), DOT.optional()),
     rule(normalized('миллиард'))
+).interpretation(
+    const(10**9)
 )
 
 MILLION = or_(
     rule(caseless('млн'), DOT.optional()),
     rule(normalized('миллион'))
+).interpretation(
+    const(10**6)
 )
 
 THOUSAND = or_(
     rule(caseless('т'), DOT),
     rule(caseless('тыс'), DOT.optional()),
     rule(normalized('тысяча'))
+).interpretation(
+    const(10**3)
 )
 
 MULTIPLIER = or_(
     MILLIARD,
     MILLION,
     THOUSAND
+).interpretation(
+    Money.multiplier
 )
 
 
@@ -163,24 +196,20 @@ MODIFIER = in_caseless({
     'десятых'
 })
 
-PART_MONEY = or_(
+PART = or_(
+    rule(
+        or_(
+            INT,
+            NUMR,
+            MODIFIER
+        )
+    ),
     MILLIARD,
     MILLION,
     THOUSAND,
     CURRENCY,
-    COINS_CURRENCY
-)
-
-PART = rule(
-    or_(
-        INT,
-        NUMR,
-        MODIFIER
-    ),
-    or_(
-        PART_MONEY,
-        SIGN
-    )
+    COINS_CURRENCY,
+    PERCENT
 )
 
 BOUND = in_('()//')
@@ -222,6 +251,8 @@ INTEGER = or_(
     rule(INT, PART, PART),
     rule(INT, SEP, PART),
     rule(INT, SEP, PART, SEP, PART),
+).interpretation(
+    Money.integer.custom(normalize_integer)
 )
 
 FRACTION = and_(
@@ -230,6 +261,8 @@ FRACTION = and_(
         length_eq(1),
         length_eq(2)
     )
+).interpretation(
+    Money.fraction.custom(normalize_fraction)
 )
 
 VALUE = rule(
@@ -248,39 +281,13 @@ COINS_INTEGER = and_(
         length_eq(1),
         length_eq(2)
     )
+).interpretation(
+    Money.coins.custom(int)
 )
 
-COINS_VALUE = rule(
+COINS_AMOUNT = rule(
     COINS_INTEGER,
     NUMERAL.optional()
-)
-
-
-#########
-#
-#   MONEY
-#
-###########
-
-
-MONEY = rule(
-    VALUE,
-    CURRENCY,
-    COINS_VALUE.optional(),
-    COINS_CURRENCY.optional()
-)
-
-
-#########
-#
-#   PERCENT
-#
-###########
-
-
-PERCENT = rule(
-    VALUE,
-    SIGN
 )
 
 
@@ -291,7 +298,14 @@ PERCENT = rule(
 ###########
 
 
-AMOUNT = or_(
-    MONEY,
-    PERCENT
+AMOUNT = rule(
+    VALUE,
+    or_(
+        CURRENCY,
+        PERCENT
+    ),
+    COINS_AMOUNT.optional(),
+    COINS_CURRENCY.optional()
+).interpretation(
+    Money
 )

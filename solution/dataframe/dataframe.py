@@ -2,39 +2,66 @@
 from pandas import DataFrame, read_json
 
 
-def extr_nested(path):
-    df = read_json(path)
-    return df.from_records(
-        df['extracted_part']
-    )
+def get_label1():
+    return "обеспечение исполнения контракта"
+
+def get_label2():
+    return "обеспечение гарантийных обязательств"
+
+
 
 
 def cut_extracted(path):
-    df = read_json(path).drop(
-        columns=['extracted_part']
+    df = read_json(path)
+    df.index = df['id']
+    return df.drop(
+        columns=['id', 'extracted_part'])
+
+
+def extr_nested(path):
+    from json import load
+    file = open(path)
+    dataJSON = load(file)
+    file.close()
+
+    df = DataFrame()
+    x = 'extracted_part'
+    for _ in dataJSON:
+        dict = {
+                'start': _[x]['answer_start'],
+                'stop': _[x]['answer_end'],
+                'search': _[x]['text']
+        }
+        from pandas import concat
+        df = concat(
+            [df, DataFrame(
+                    dict, 
+                    index=[_['id']])])
+
+    return df 
+
+
+def get_fulldf(path):
+    return cut_extracted(path).join(
+        extr_nested(path)
     )
-    return df
 
 
-def join_parts(path):
-    
-    part1 = cut_extracted(path)
-    part2 = extr_nested(path)
-    from pandas import concat
-    return concat(
-        [part1, part2], 
-        axis=1
-    ) 
-    
+def get_extrdf(path):
+    df = get_fulldf(path)
+    return df.drop(columns=['text'])
+
+
+
 
 def switch_config(_, __):
-    if not (_ or __):
-        return 'empty'
+    if _ and not __:
+        return 'docs'
+    if not _ and __:
+        return 'answers'
     if _ and __:
         return 'full'
-    if _ and (not __):
-        return 'docs'
-    return ''
+    return 0
 
 
 def reads_json(
@@ -47,10 +74,13 @@ def reads_json(
         extracted_part
     )
     
-    if config == 'empty':
-        return DataFrame()
     if config == 'docs':
-        return cut_extracted((path))
+        return cut_extracted(path)
+    if config == 'answers':
+        return get_extrdf(path)
     if config == 'full':
-        return join_parts(path)
-    return extr_nested(path)   
+        return get_fulldf(path)
+    
+    return DataFrame()   
+
+
