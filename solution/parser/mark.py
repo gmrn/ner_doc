@@ -15,9 +15,7 @@ class Mark():
                                  self.type)
     
     def to_tuple(self):
-        return (self.start, self.stop, self.type)
-      
-
+        return (self.start, self.stop, self.type)     
 
 
 def get_label1():
@@ -27,92 +25,92 @@ def get_label2():
     return "обеспечение гарантийных обязательств"
 
 
-
-def get_matches(text, type):
-    from .parser import select_parser
-    return(
-        select_parser(type).findall(text)
-    ) 
-
-
-def get_matches_(text):
-    from .extractor import get_amount_extractor
-    _ = get_amount_extractor()
-    return _(text)
+def find_matches(text, types):
+    marks = []
+    from .parser import parse_text
+    for t in types:
+        matches = parse_text(text, t)
+        marks += normalize_(matches, t)
+    return marks
 
 
-def normalize_marks(marks, type):
-    pre_marks = []
-    for mark in marks:
-        pre_marks.append(Mark(
-            mark.start, 
-            mark.stop, 
-            type))
-    return pre_marks
-
-
-def switch_(option):
-    _ = {
-        'label1' : '1',
-        'label2' : '2',
-        'additional': '+',
-        'amount' : '₽',
-    }
-    return _[option]
-
-
-def select_marks(text, type):
-    type = switch_(type)
-    if type == '₽':
-        m_ = get_matches_(text)
-        return [(Mark(_.start, _.stop, type)) for _ in m_]   
-    
-    m_ = get_matches(text, type)
-    marks = [_.span for _ in m_]
-    return normalize_marks(marks, type)
+def normalize_(marks, type):
+    prepared_ = []
+    for m_ in marks:
+        try:
+            prepared_.append(Mark(
+                m_.span.start, 
+                m_.span.stop, 
+                type))
+        except:
+            prepared_.append(Mark(
+                m_.start, 
+                m_.stop, 
+                type))
+    return prepared_
 
 
 def sorted_(marks):
      return sorted(marks, key=lambda _: _.start)
 
 
-def get_marks(text, 
+def switch_label(label):
+    return '1' if label == get_label1() else '2'
+
+
+def find_marks(text, 
               label = None,
-              amount = False,
-              additional = False):  
-    _ = text
+              amount = True,
+              additional = True):  
+    types = []
 
-    marks = (
-        select_marks(_, 'label1') 
-        if label == get_label1() 
-        else select_marks(_, 'label2'))
-
+    types.append(switch_label(label))
     if (amount):
-        marks += select_marks(_, 'amount')
+        types.append('₽')
     if(additional):
-        marks += select_marks(_, 'additional')
-    
+        types.append('A')
+
+    marks = find_matches(text, types)
     return sorted_(marks)
 
 
-
-def get_string(marks, label):
-    marks_t = ''.join(_.type for _ in marks)
-
-
-def get_bounds(text, label):
-     marks = get_marks(text, label)
-     return Mark(
-          marks[0].start,
-          marks[-1].stop,
-     ) 
+def encode_marks(marks):
+    return ''.join(_.type for _ in marks).replace('2', '1')
 
 
-def select_part(text, label):
-    bounds = get_bounds(text, label)
-    return text[
-        bounds.start:bounds.stop
-    ]
+def find_entry(enc_):
+    import re
+    arr = [_.start() for _ in re.finditer(
+        '1A₽', enc_)]
+    arr += [_.start() for _ in re.finditer(
+        'A1₽', enc_)]
+    return arr
+
+def find_entry_(enc_):
+    import re
+    return [_.start() for _ in re.finditer('₽', enc_)]
+    
+
+
+def get_entry(marks):
+    return find_entry(encode_marks(marks))
+
+def get_entry_(marks):
+    return find_entry_(encode_marks(marks))
+
+
+def get_offset(text, label):    
+    type = switch_label(label)
+    
+    from .parser import select_parser
+    span = select_parser(type).find(text)
+    _ = span.span.start
+    try:
+        span = select_parser('A').find(text)
+        __ = span.span.start
+        return min(_, __)
+    except:
+        return _  
 
 
 def shift_marks(marks, bounds):
@@ -123,7 +121,7 @@ def shift_marks(marks, bounds):
     return marks
 
 
-def show_markup(text, marks, bounds=None):
+def show_markup(text, marks):
     from ipymarkup import(
         show_span_box_markup 
         as show

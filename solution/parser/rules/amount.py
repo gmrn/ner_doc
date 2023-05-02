@@ -23,6 +23,7 @@ class Currency:
     RUBLES = 'RUB'
     DOLLARS = 'USD'
     EURO = 'EUR'
+    PERCENT= 'PER'
 
 
 Money = fact(
@@ -91,10 +92,18 @@ RUBLES = or_(
     const(Currency.RUBLES)
 )
 
+PERCENT = or_(
+    normalized('процент'),
+    eq('%')   
+).interpretation(
+    const(Currency.PERCENT)
+)
+
 CURRENCY = or_(
+    RUBLES,
+    PERCENT,
     EURO,
     DOLLARS,
-    RUBLES
 ).interpretation(
     Money.currency
 )
@@ -121,19 +130,6 @@ COINS_CURRENCY = or_(
     KOPEIKA,
     rule(CENT),
     rule(EUROCENT)
-)
-
-
-########
-#
-#   PERCENT
-#
-##########
-
-
-PERCENT = or_(
-    rule(normalized('процент')),
-    rule(eq('%'))   
 )
 
 
@@ -186,8 +182,10 @@ NUMR = or_(
     gram('NUMR'),
     dictionary({
         'ноль',
+        'нуль',
         'один'
     }),
+    DOT
 )
 
 MODIFIER = in_caseless({
@@ -199,9 +197,10 @@ MODIFIER = in_caseless({
 PART = or_(
     rule(
         or_(
+            eq('_'),
             INT,
             NUMR,
-            MODIFIER
+            MODIFIER,
         )
     ),
     MILLIARD,
@@ -209,16 +208,17 @@ PART = or_(
     THOUSAND,
     CURRENCY,
     COINS_CURRENCY,
-    PERCENT
+    # PERCENT
 )
 
-BOUND = in_('()//')
+BOUND = rule(in_('()//'))
 
 NUMERAL = rule(
-    BOUND,
+    BOUND.optional(),
     PART.repeatable(),
-    BOUND
-)
+    BOUND.optional(),
+) 
+
 
 
 #######
@@ -299,11 +299,20 @@ COINS_AMOUNT = rule(
 
 
 AMOUNT = rule(
-    VALUE,
     or_(
-        CURRENCY,
-        PERCENT
+        rule(
+            VALUE,
+            CURRENCY
+        ),
+        rule(
+            CURRENCY,
+            VALUE
+        ),
     ),
+    # and_(
+    #     VALUE,
+    #     CURRENCY
+    # ),
     COINS_AMOUNT.optional(),
     COINS_CURRENCY.optional()
 ).interpretation(

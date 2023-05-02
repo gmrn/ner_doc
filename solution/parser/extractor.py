@@ -10,11 +10,7 @@ from natasha import obj
 
 class Parser(YargyParser):
     def __init__(self, rule, morph):
-        # wraps pymorphy subclass
-        # add methods check_gram, normalized
-        # uses parse method that is cached
         morph = MorphAnalyzer(morph)
-
         tokenizer = MorphTokenizer(morph=morph)
         YargyParser.__init__(self, rule, tokenizer=tokenizer)
 
@@ -43,12 +39,13 @@ class Extractor:
             return adapt_match(match)
 
 
-class AmountExtractor(Extractor):
+class MoneyExtractor(Extractor):
     def __init__(self, morph):
         from .rules.amount import AMOUNT
         Extractor.__init__(self, AMOUNT, morph)
 
 
-def get_amount_extractor():
+def extract_money(text):
     from natasha import MorphVocab
-    return AmountExtractor(MorphVocab())
+    m_extr = MoneyExtractor(MorphVocab())
+    return m_extr(text)
