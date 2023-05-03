@@ -1,6 +1,5 @@
 
 # using https://github.com/natasha/natasha/blob/09bf33ebfefe82e194439866d2d4cb67809fa173/natasha/grammars/money.py
-
 import re
 
 from yargy import (
@@ -17,7 +16,7 @@ from yargy.predicates import (
     gram, type,
     normalized, caseless, dictionary
 )
-
+    
 
 class Currency:
     RUBLES = 'RUB'
@@ -318,3 +317,9 @@ AMOUNT = rule(
 ).interpretation(
     Money
 )
+
+class Amount:
+    rule = AMOUNT
+    label = 'amount'
+    tag = '₽'
+
