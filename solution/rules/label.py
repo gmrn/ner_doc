@@ -31,11 +31,6 @@ CONTRACT = rule(
     )
 )
 
-class Contract:
-    rule = CONTRACT
-    label = 'label1'
-    tag = '1'
-
 
 
 # GUARANTEE
@@ -78,8 +73,3 @@ GUARANTEE = rule(
         rule(normalized('обязательство'))
     ).repeatable(),
 )
-
-class Guarantee:
-    rule = GUARANTEE
-    label = 'label2'
-    tag = '2'

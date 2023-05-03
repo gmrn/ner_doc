@@ -317,9 +317,3 @@ AMOUNT = rule(
 ).interpretation(
     Money
 )
-
-class Amount:
-    rule = AMOUNT
-    label = 'amount'
-    tag = '₽'
-

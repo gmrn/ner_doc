@@ -5,8 +5,3 @@ ADDITION = morph_pipeline([
     'сумма',
     'размер'
 ])
-
-class Addition:
-    rule = ADDITION
-    label = 'addition'
-    tag = '+'
