@@ -1,8 +1,4 @@
 
-
-def find_matches(parser, text):
-    return parser.findall(text)
-
 class Entity():
     __attributes__ = ['matches', 'label', 'tag']
     
@@ -10,7 +6,12 @@ class Entity():
         self.matches = []
         self.label = label
         self.tag = tag
-        
+
+
+
+def find_matches(parser, text):
+    return parser.findall(text)
+    
 
 class Extractor():
     
@@ -25,7 +26,7 @@ class Extractor():
                 self.entities.append(
                     Entity(_.label, _.tag))
             except: 
-                ValueError('rule must to include RULE, label, tag')      
+                raise ValueError('rule must to include RULE, label, tag')      
 
     def __call__(self, text):
         for _, __ in zip(self.parsers, 
@@ -34,11 +35,6 @@ class Extractor():
 
         return self.entities
     
-    # def get_entities(self):
-    #     return self.entities
-    
-    # def get_tags(self):
-    #     return self.tags
 
 
 

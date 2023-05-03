@@ -19,10 +19,6 @@ class Mark():
     
 
 
-def sorted_(marks):
-     return sorted(marks, key=lambda _: _.start)
-
-
 def adapt_(entity):
     marks = []
     for _ in entity.matches:
@@ -33,6 +29,12 @@ def adapt_(entity):
             ) 
         )
     return marks
+    
+
+from ipymarkup import(
+        show_span_box_markup as show)
+def show_markup(text, marks):
+    show(text, [_() for _ in marks])
 
 
 def shift_(marks, offset):
@@ -40,18 +42,14 @@ def shift_(marks, offset):
         _.start -=offset 
         _.stop -=offset
     return marks 
-    
-
-from typing import Any
-from ipymarkup import(
-        show_span_box_markup as show)
-def show_markup(text, marks):
-    show(text, [_() for _ in marks])
 
 
 def set_margin(head, tail):
     return (head.start, tail.stop)
 
+
+def sorted_(marks):
+     return sorted(marks, key=lambda _: _.start)
 
 class NERpack():
     __attributes__ = ['entities', 'marks', 'margin']
