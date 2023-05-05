@@ -1,7 +1,6 @@
 
 from typing import Any
 
-
 class Entity():
     __attributes__ = ['matches', 'label', 'tag']
     

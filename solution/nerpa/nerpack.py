@@ -52,8 +52,10 @@ def shift_(marks, offset):
         _.stop -=offset
     return marks 
 
+
 def sorted_(marks):
      return sorted(marks, key=lambda _: _.start)
+
 
 def unpack_(entities, text):
     marks=[] 
@@ -101,6 +103,7 @@ class NERpack():
             self.entities = pack['labels']
             self.margins = pack['margins']
         if matches:
+            ### !!!!set margins
             self.marks = adapt_(matches, text)
 
     def markstr(self):
