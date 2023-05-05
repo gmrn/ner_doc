@@ -1,14 +1,9 @@
 
-from pandas import DataFrame, read_json
-
-
-def get_label1():
-    return "обеспечение исполнения контракта"
-
-def get_label2():
-    return "обеспечение гарантийных обязательств"
-
-
+import sys
+from pandas import(
+    DataFrame, 
+    read_json, 
+    concat)
 
 
 def cut_extracted(path):
@@ -23,64 +18,26 @@ def extr_nested(path):
     file = open(path)
     dataJSON = load(file)
     file.close()
-
+    
     df = DataFrame()
-    x = 'extracted_part'
-    for _ in dataJSON:
+    _ = 'extracted_part'
+    for row in dataJSON:
         dict = {
-                'start': _[x]['answer_start'],
-                'stop': _[x]['answer_end'],
-                'search': _[x]['text']
+                'start': row[_]['answer_start'],
+                'stop': row[_]['answer_end'],
+                'search': row[_]['text']
         }
-        from pandas import concat
-        df = concat(
-            [df, DataFrame(
-                    dict, 
-                    index=[_['id']])])
-
+        df = concat([df, DataFrame(dict, index=[row['id']])])
     return df 
 
 
-def get_fulldf(path):
-    return cut_extracted(path).join(
-        extr_nested(path)
-    )
-
-
-def get_extrdf(path):
-    df = get_fulldf(path)
-    return df.drop(columns=['text'])
-
-
-
-
-def switch_config(_, __):
-    if _ and not __:
-        return 'docs'
-    if not _ and __:
-        return 'answers'
-    if _ and __:
-        return 'full'
+def main() -> int:
+    path = 'data/train.json'
+    
+    cut_extracted(path).to_csv('data/train.csv')
+    extr_nested(path).to_csv('data/target.csv')
     return 0
 
-
-def reads_json(
-        path, 
-        docs = True,
-        extracted_part = True):
-
-    config = switch_config(
-        docs,
-        extracted_part
-    )
-    
-    if config == 'docs':
-        return cut_extracted(path)
-    if config == 'answers':
-        return get_extrdf(path)
-    if config == 'full':
-        return get_fulldf(path)
-    
-    return DataFrame()   
-
+if __name__ == '__main__':
+    main()
 

@@ -1,39 +1,46 @@
 
+from typing import Any
+
+
 class Entity():
     __attributes__ = ['matches', 'label', 'tag']
     
-    def __init__(self, label, tag):
-        self.matches = []
+    def __init__(
+            self, matches:object, label:str, tag:str):
+        self.matches = matches
         self.label = label
-        self.tag = tag
+        self.tag = tag 
 
 
-
-def find_matches(parser, text):
-    return parser.findall(text)
+def isempty(parser, text) -> bool:
+    return not parser.find(text)
     
 
 class Extractor():
-    
-    def __init__(self, rules):
+    def __init__(self, rules:list):
+        self.parsers = []     
         from yargy import Parser
-        self.parsers = []
-        self.entities = []
         for _ in rules:
-            try:
-                self.parsers.append(
-                    Parser(_.rule))
-                self.entities.append(
-                    Entity(_.label, _.tag))
-            except: 
-                raise ValueError('rule must to include RULE, label, tag')      
+            self.parsers.append(Parser(_.rule))
+        self.rules = rules
 
-    def __call__(self, text):
-        for _, __ in zip(self.parsers, 
-                             self.entities):
-            __.matches = find_matches(_, text)
+    def empty(self, text) -> bool:
+        for p in self.parsers:
+            empty = isempty(parser=p, text=text) 
+            if not empty:
+                return False 
+        return True
 
-        return self.entities
+    def __call__(self, text) -> list:
+        entities = []
+        for p, r in zip(self.parsers, self.rules):
+            if not isempty(parser=p, text=text):
+               matches = p.findall(text)
+               entities.append(
+                   Entity(matches, r.label, r.tag)) 
+        return entities
+    
+
     
 
 

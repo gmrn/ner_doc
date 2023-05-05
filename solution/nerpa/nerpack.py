@@ -18,6 +18,9 @@ class Mark():
                                  self.tag)
     
 
+def sorted_(marks):
+     return sorted(marks, key=lambda _: _.start)
+
 
 def adapt_(entity):
     marks = []
@@ -43,46 +46,46 @@ def shift_(marks, offset):
         _.stop -=offset
     return marks 
 
+def unpack_(entities):
+    marks=[] 
+    labels=[] 
+    margins=[]
+    
+    for _ in entities:
+            marks += adapt_(entity=_)
+            labels.append(_.label)
+    if marks:
+        marks = sorted_(marks)
+        margins = (
+            marks[0].start,
+            marks[-1].stop)
 
-def set_margin(head, tail):
-    return (head.start, tail.stop)
+    return {'marks' : marks, 
+            'labels' : labels, 
+            'margins' : margins
+            }
 
-
-def sorted_(marks):
-     return sorted(marks, key=lambda _: _.start)
 
 class NERpack():
-    __attributes__ = ['entities', 'marks', 'margin']
+    __attributes__ = ['entities', 'marks', 'margins']
 
-    def __init__(self):
-        self.marks = []
-        self.entities = []
-        self.margin = ()
-
-    def add_marks(self, entities):
-        for _ in entities:
-            marks = adapt_(_)
-            if not marks:
-                continue
-            self.marks += marks
-            self.entities.append(_.label)
-        
-        if self.marks:
-            self.marks = sorted_(self.marks)
-            self.margin = set_margin(
-                self.marks[0],
-                self.marks[-1])
+    def __init__(self, entities):
+        if entities:
+            pack = unpack_(entities=entities)
+            self.marks = pack['marks']
+            self.entities = pack['labels']
+            self.margins = pack['margins']
 
     def markstr(self):
         return ''.join(_.tag for _ in self.marks)
     
     def show(self, text):
-        off_ = self.margin[0]
-        _off = self.margin[1]
+        start = self.margins[0]
+        stop = self.margins[1]
+        marks = shift_(marks=self.marks, offset=start)
         show_markup(
-            text[off_ : _off], 
-            shift_(self.marks, off_)
-        )
+            text=text[start : stop], 
+            marks=marks)
             
     def show_full(self, text):
         show_markup(text, self.marks)
