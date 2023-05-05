@@ -1,36 +1,42 @@
 
 class Mark():
-    __attributes__ = ['start', 'stop', 'tag']
+    __attributes__ = ['start', 'stop', 'content', 'tag']
 
-    def __init__(self, start, stop, tag = None):
+    def __init__(self, start, stop, content= None, tag = None):
         if start >= stop:
             raise ValueError('invert mark: (%r, %r)' % (start, stop))
         self.start = start
         self.stop = stop
+        self.content = content
         self.tag = tag
     
     def __call__(self):
         return (self.start, self.stop, self.tag)
     
     def __repr__(self):
-        return '(%d, %d, %s)' % (self.start, 
-                                 self.stop, 
-                                 self.tag)
+        return '(%d, %d, %r, %r)' % (self.start, 
+                                    self.stop,
+                                    self.content, 
+                                    self.tag)
     
 
-def sorted_(marks):
-     return sorted(marks, key=lambda _: _.start)
+def parse_(marks, text):
+    for _ in marks:
+        _.content = text[_.start:_.stop]
+    return marks 
 
 
-def adapt_(entity):
+def extract_(entity, text):
     marks = []
     for _ in entity.matches:
         marks.append(Mark(
-            _.span.start, 
-            _.span.stop, 
-            entity.tag
+            start=_.span.start, 
+            stop=_.span.stop,
+            tag=entity.tag
             ) 
         )
+    if text:
+        return parse_(marks=marks, text=text)
     return marks
     
 
@@ -46,13 +52,16 @@ def shift_(marks, offset):
         _.stop -=offset
     return marks 
 
-def unpack_(entities):
+def sorted_(marks):
+     return sorted(marks, key=lambda _: _.start)
+
+def unpack_(entities, text):
     marks=[] 
     labels=[] 
     margins=[]
     
     for _ in entities:
-            marks += adapt_(entity=_)
+            marks += extract_(entity=_, text=text)
             labels.append(_.label)
     if marks:
         marks = sorted_(marks)
@@ -66,23 +75,42 @@ def unpack_(entities):
             }
 
 
+def adapt_(matches, text):
+    marks = []
+    for _ in matches:
+        marks.append(Mark(_[0], _[1]))
+    marks = sorted_(marks)
+    if text:
+        return parse_(marks=marks, text=text)
+    return marks
+
+
 class NERpack():
     __attributes__ = ['entities', 'marks', 'margins']
 
-    def __init__(self, entities):
+    def __init__(self):
+        self.marks = self.labels = self.margins = []  
+        
+    def add_marks(self, 
+                  entities=None, 
+                  matches=None, 
+                  text=None):
         if entities:
-            pack = unpack_(entities=entities)
+            pack = unpack_(entities, text)
             self.marks = pack['marks']
             self.entities = pack['labels']
             self.margins = pack['margins']
+        if matches:
+            self.marks = adapt_(matches, text)
 
     def markstr(self):
         return ''.join(_.tag for _ in self.marks)
-    
+
     def show(self, text):
         start = self.margins[0]
         stop = self.margins[1]
-        marks = shift_(marks=self.marks, offset=start)
+        marks = shift_(
+            marks=self.marks, offset=start)
         show_markup(
             text=text[start : stop], 
             marks=marks)
